@@ -1,0 +1,928 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth bg-[#08080C] text-gray-100 selection:bg-amber-500 selection:text-black">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pioneer Bass System Gujranwala | visionOS Audio Lab</title>
+    
+    <!-- SEO -->
+    <meta name="description" content="Pioneer Bass System Gujranwala. Proprietor: Muhammad Shafiq Mehar. High-voltage car sound systems, subwoofers, and acoustic electronics.">
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;600;800&display=swap" rel="stylesheet">
+    
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- REQUIRED CDNs -->
+    <!-- 1. Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- 2. GSAP Core + ScrollTrigger -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
+    
+    <!-- 3. Three.js Core & GLTFLoader (For loading external .glb 3D files) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+    
+    <!-- 4. Canvas Confetti -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { 
+                        sans: ['Inter', 'sans-serif'],
+                        display: ['Outfit', 'sans-serif']
+                    },
+                    colors: {
+                        gold: { light: '#FCE881', DEFAULT: '#C5A059', dark: '#9E7D3B' },
+                        glass: { bg: 'rgba(255, 255, 255, 0.04)', border: 'rgba(255, 255, 255, 0.1)' }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body {
+            background-color: #08080C;
+            overflow-x: hidden;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* Ambient visionOS Background Orbs */
+        .ambient-orb {
+            position: fixed; border-radius: 50%; filter: blur(100px); z-index: 0; pointer-events: none; opacity: 0.35;
+            animation: orbFloat 14s ease-in-out infinite alternate;
+        }
+        @keyframes orbFloat {
+            0% { transform: translate(0, 0) scale(1); }
+            100% { transform: translate(40px, -40px) scale(1.2); }
+        }
+
+        /* Apple Glass OS Panes */
+        .vision-glass {
+            background: rgba(255, 255, 255, 0.045);
+            backdrop-filter: blur(32px) saturate(190%);
+            -webkit-backdrop-filter: blur(32px) saturate(190%);
+            border: 1px solid rgba(255, 255, 255, 0.09);
+            box-shadow: 0 24px 50px rgba(0, 0, 0, 0.5);
+        }
+
+        .vision-pill {
+            background: rgba(255, 255, 255, 0.06);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+            white-space: nowrap;
+        }
+        .vision-pill.active {
+            background: rgba(197, 160, 89, 0.2);
+            border: 1px solid rgba(197, 160, 89, 0.5);
+            color: #FCE881;
+            box-shadow: 0 0 25px rgba(197, 160, 89, 0.25);
+        }
+
+        /* Custom Trailing Glass Cursor */
+        @media (hover: hover) and (pointer: fine) {
+            body { cursor: none; }
+            #glass-cursor {
+                position: fixed; top: 0; left: 0; width: 18px; height: 18px; border-radius: 50%;
+                background: rgba(255, 255, 255, 0.8); pointer-events: none; z-index: 9999;
+                transform: translate(-50%, -50%); transition: width 0.3s, height 0.3s, background 0.3s; mix-blend-mode: difference;
+            }
+            #glass-cursor.hovered {
+                width: 52px; height: 52px; background: rgba(197, 160, 89, 0.35); border: 1px solid rgba(255,255,255,0.4); mix-blend-mode: normal; backdrop-filter: blur(4px);
+            }
+        }
+
+        /* Button Compression Animation */
+        .btn-vision {
+            transition: transform 0.15s ease, background 0.3s ease, box-shadow 0.3s ease;
+        }
+        .btn-vision:active { transform: scale(0.94); }
+
+        ::-webkit-scrollbar { width: 5px; }
+        ::-webkit-scrollbar-track { background: #08080C; }
+        ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 10px; }
+
+        #hero-canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; pointer-events: none; }
+
+        .tab-pane { display: none; opacity: 0; }
+        .tab-pane.active { display: block; opacity: 1; }
+
+        input[type="file"]::file-selector-button {
+            border: 1px solid rgba(197, 160, 89, 0.4); background: rgba(255, 255, 255, 0.05); color: #C5A059;
+            padding: 8px 16px; border-radius: 999px; font-size: 11px; font-weight: 600; cursor: pointer; margin-right: 12px;
+        }
+
+        /* Hide scrollbar for nav but allow horizontal scroll */
+        .hide-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .hide-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+
+        /* Sub-category pill styles */
+        .subcat-pill {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            transition: all 0.3s ease;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+        .subcat-pill.active {
+            background: rgba(197, 160, 89, 0.15);
+            border: 1px solid rgba(197, 160, 89, 0.5);
+            color: #FCE881;
+        }
+
+        .loading-text {
+            position: absolute;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            color: #C5A059;
+            font-size: 12px;
+            font-weight: bold;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            animation: pulse 1.5s infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.4; }
+        }
+    </style>
+</head>
+<body class="min-h-screen relative font-sans flex flex-col justify-between">
+
+    <!-- Custom Trailing Cursor (Desktop) -->
+    <div id="glass-cursor" class="hidden md:block"></div>
+
+    <!-- Background Space Wallpaper Orbs -->
+    <div class="ambient-orb w-[450px] h-[450px] bg-amber-600/20 top-[-100px] left-[-100px]"></div>
+    <div class="ambient-orb w-[550px] h-[550px] bg-blue-900/15 bottom-[-150px] right-[-100px]" style="animation-delay: -5s;"></div>
+
+    <!-- ================= FLOATING GLASS DOCK (Header) ================= -->
+    <header class="fixed top-6 left-0 right-0 z-50 flex justify-center px-4">
+        <nav class="vision-glass px-3 py-2.5 rounded-full flex items-center justify-between gap-2 sm:gap-6 max-w-[55rem] w-full shadow-2xl border border-white/10 overflow-x-auto hide-scrollbar">
+            
+            <!-- Brand Badge -->
+            <div class="flex items-center gap-3 pl-3 cursor-pointer interactive shrink-0" onclick="switchTab('home')">
+                <div class="w-8 h-8 rounded-full bg-gradient-to-tr from-amber-600 to-yellow-300 flex items-center justify-center text-black font-black text-xs shadow-md">P</div>
+                <div class="flex flex-col hidden lg:flex">
+                    <span class="font-display font-bold text-xs tracking-wider text-white">PIONEER BASS</span>
+                    <span class="text-[8px] text-amber-400 tracking-[0.2em] font-semibold uppercase">Gujranwala Lab</span>
+                </div>
+            </div>
+
+            <!-- Tab Pills -->
+            <div class="flex items-center gap-1.5 sm:gap-2 shrink-0">
+                <button onclick="switchTab('home')" id="pill-home" class="vision-pill active px-3 sm:px-4 py-2 rounded-full text-[11px] sm:text-xs font-semibold interactive">Home</button>
+                <button onclick="switchTab('sound-categories')" id="pill-sound-categories" class="vision-pill px-3 sm:px-4 py-2 rounded-full text-[11px] sm:text-xs font-semibold interactive text-gray-300">Sound Categories</button>
+                <button onclick="switchTab('car-categories')" id="pill-car-categories" class="vision-pill px-3 sm:px-4 py-2 rounded-full text-[11px] sm:text-xs font-semibold interactive text-gray-300">Car Categories</button>
+                <button onclick="switchTab('products')" id="pill-products" class="vision-pill px-3 sm:px-4 py-2 rounded-full text-[11px] sm:text-xs font-semibold interactive text-gray-300">Products</button>
+                <button onclick="switchTab('location')" id="pill-location" class="vision-pill px-3 sm:px-4 py-2 rounded-full text-[11px] sm:text-xs font-semibold interactive text-gray-300">Location</button>
+            </div>
+
+            <!-- Proprietor Callout -->
+            <a href="https://wa.me/923207171575" target="_blank" class="btn-vision bg-white/10 hover:bg-white/20 text-white px-4 py-2 rounded-full text-[11px] font-medium hidden md:flex items-center gap-2 interactive border border-white/10 shrink-0">
+                <i class="fa-brands fa-whatsapp text-green-400"></i> Shafiq Mehar
+            </a>
+        </nav>
+    </header>
+
+    <!-- 3D Three.js Background Canvas -->
+    <div id="hero-canvas"></div>
+
+    <!-- ================= MAIN SPA TAB CONTAINER ================= -->
+    <main id="spa-container" class="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-36 pb-28 flex-grow w-full">
+        
+        <!-- ---------------- TAB 1: HOME (Intro & Story) ---------------- -->
+        <section id="tab-home" class="tab-pane active">
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center min-h-[75vh]">
+                
+                <div class="lg:col-span-7 flex flex-col justify-center text-center lg:text-left pointer-events-auto">
+                    
+                    <div class="gs-anim inline-flex items-center gap-2 vision-glass px-4 py-1.5 rounded-full mb-6 w-max mx-auto lg:mx-0">
+                        <span class="w-2 h-2 rounded-full bg-amber-400 animate-ping"></span>
+                        <span class="text-[10px] font-bold uppercase tracking-[0.25em] text-amber-200">Automotive Sound Engineering</span>
+                    </div>
+
+                    <h1 class="gs-anim text-5xl sm:text-7xl font-display font-extrabold tracking-tight text-white mb-6 leading-[1.05]">
+                        Extreme Sound <br>
+                        <span class="bg-gradient-to-r from-amber-200 via-yellow-400 to-amber-600 bg-clip-text text-transparent">Wheels & Decks.</span>
+                    </h1>
+                    
+                    <p class="gs-anim text-gray-300 text-base sm:text-lg mb-8 max-w-xl mx-auto lg:mx-0 font-light leading-relaxed">
+                        Pioneer Bass System Gujranwala is Pakistan’s premier automotive audio laboratory. Owned & operated by Muhammad Shafiq Mehar, we specialize in high-voltage car sound systems, competition subwoofers, and acoustic electronic head units.
+                    </p>
+                    
+                    <div class="gs-anim flex flex-wrap gap-4 justify-center lg:justify-start">
+                        <button onclick="switchTab('products')" class="btn-vision bg-gold hover:bg-gold-light text-black px-8 py-4 rounded-full font-display font-bold text-xs uppercase tracking-widest shadow-[0_0_30px_rgba(197,160,89,0.3)] interactive">
+                            Shift To Products
+                        </button>
+                        <button onclick="switchTab('sound-categories')" class="btn-vision vision-glass hover:bg-white/10 text-white px-8 py-4 rounded-full font-display font-bold text-xs uppercase tracking-widest interactive">
+                            Sound Systems
+                        </button>
+                        <button onclick="switchTab('car-categories')" class="btn-vision vision-glass hover:bg-white/10 text-white px-8 py-4 rounded-full font-display font-bold text-xs uppercase tracking-widest interactive">
+                            Car Upgrades
+                        </button>
+                    </div>
+
+                    <!-- Hardware Stats -->
+                    <div class="gs-anim grid grid-cols-3 gap-4 mt-16 pt-10 border-t border-white/10 max-w-lg mx-auto lg:mx-0">
+                        <div>
+                            <span class="font-display font-bold text-2xl text-white block">32-Bit</span>
+                            <span class="text-[10px] text-gray-400 uppercase tracking-wider">DSP Processors</span>
+                        </div>
+                        <div>
+                            <span class="font-display font-bold text-2xl text-amber-400 block">1 Ohm</span>
+                            <span class="text-[10px] text-gray-400 uppercase tracking-wider">Stable Amps</span>
+                        </div>
+                        <div>
+                            <span class="font-display font-bold text-2xl text-white block">100%</span>
+                            <span class="text-[10px] text-gray-400 uppercase tracking-wider">Copper Wound</span>
+                        </div>
+                    </div>
+
+                </div>
+                
+                <div class="hidden lg:block lg:col-span-5 h-[500px]"></div>
+            </div>
+        </section>
+
+        <!-- ---------------- TAB 2: SOUND CATEGORIES ---------------- -->
+        <section id="tab-sound-categories" class="tab-pane">
+            <div class="max-w-6xl mx-auto py-8">
+                
+                <div class="text-center mb-10">
+                    <span class="text-xs uppercase tracking-[0.25em] text-gold font-semibold block mb-2">Speaker & Audio Segments</span>
+                    <h2 class="text-4xl font-display font-bold text-white tracking-tight">Sound Wheels Car stereo</h2>
+                    <p class="text-gray-400 text-sm mt-3 font-light">Explore engineered configurations for extreme cabin acoustics and bass dynamics.</p>
+                </div>
+
+                <!-- 3D CAR VISUALIZER FOR SOUND WHEELS -->
+                <div id="sound-car-canvas" class="w-full h-[320px] mb-12 rounded-3xl overflow-hidden relative vision-glass border border-white/10 shadow-2xl">
+                    <div id="loading-text-1" class="loading-text">Loading 3D Model...</div>
+                    <div class="absolute top-5 left-6 z-10">
+                        <span class="text-[10px] uppercase tracking-[0.25em] text-gold font-bold block bg-black/40 px-3 py-1.5 rounded-full backdrop-blur-md">
+                            <i class="fa-solid fa-cube mr-1"></i> Audio Platform Showcase
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Sound Wheels Grid -->
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <div onclick="switchTab('products')" class="vision-glass p-8 rounded-3xl interactive group hover:border-gold/50 cursor-pointer transition-all">
+                        <i class="fa-solid fa-volume-high text-gold text-3xl mb-4 group-hover:scale-110 transition-transform"></i>
+                        <h3 class="font-display font-bold text-xl text-white mb-2">Car Trunk SPL Wheels</h3>
+                        <p class="text-xs text-gray-400 font-light leading-relaxed">High-pressure cylindrical subwoofers tuned for sedan & SUV acoustics.</p>
+                    </div>
+                    <div onclick="switchTab('products')" class="vision-glass p-8 rounded-3xl interactive group hover:border-gold/50 cursor-pointer transition-all">
+                        <i class="fa-solid fa-microchip text-gold text-3xl mb-4 group-hover:scale-110 transition-transform"></i>
+                        <h3 class="font-display font-bold text-xl text-white mb-2">Class-D Monoblock Amps</h3>
+                        <p class="text-xs text-gray-400 font-light leading-relaxed">High-current MOSFET amplification stable down to 1-ohm loads.</p>
+                    </div>
+                    <div onclick="switchTab('products')" class="vision-glass p-8 rounded-3xl interactive group hover:border-gold/50 cursor-pointer transition-all">
+                        <i class="fa-solid fa-compact-disc text-gold text-3xl mb-4 group-hover:scale-110 transition-transform"></i>
+                        <h3 class="font-display font-bold text-xl text-white mb-2">32-Bit DSP Head Units</h3>
+                        <p class="text-xs text-gray-400 font-light leading-relaxed">Competition equalizer decks with 0.1ms time-alignment control.</p>
+                    </div>
+                    <div onclick="switchTab('products')" class="vision-glass p-8 rounded-3xl interactive group hover:border-gold/50 cursor-pointer transition-all">
+                        <i class="fa-solid fa-house-signal text-gold text-3xl mb-4 group-hover:scale-110 transition-transform"></i>
+                        <h3 class="font-display font-bold text-xl text-white mb-2">Home Lounge Towers</h3>
+                        <p class="text-xs text-gray-400 font-light leading-relaxed">Floorstanding dual 12" Kevlar speakers for residential cinema.</p>
+                    </div>
+                    <div onclick="switchTab('products')" class="vision-glass p-8 rounded-3xl interactive group hover:border-gold/50 cursor-pointer transition-all">
+                        <i class="fa-solid fa-dharmachakra text-gold text-3xl mb-4 group-hover:scale-110 transition-transform"></i>
+                        <h3 class="font-display font-bold text-xl text-white mb-2">Acoustic Sound Wheels</h3>
+                        <p class="text-xs text-gray-400 font-light leading-relaxed">Pioneer component wheels with titanium horn compression drivers.</p>
+                    </div>
+                    <div onclick="switchTab('products')" class="vision-glass p-8 rounded-3xl interactive group hover:border-gold/50 cursor-pointer transition-all">
+                        <i class="fa-solid fa-plug-circle-bolt text-gold text-3xl mb-4 group-hover:scale-110 transition-transform"></i>
+                        <h3 class="font-display font-bold text-xl text-white mb-2">OFC Copper Cabling</h3>
+                        <p class="text-xs text-gray-400 font-light leading-relaxed">Zero-oxygen 4-gauge copper wiring & 80A external fuse blocks.</p>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- ---------------- TAB 3: CAR CATEGORIES (Swipeable Menu) ---------------- -->
+        <section id="tab-car-categories" class="tab-pane">
+            <div class="max-w-6xl mx-auto py-8">
+                
+                <div class="text-center mb-10">
+                    <span class="text-xs uppercase tracking-[0.25em] text-gold font-semibold block mb-2">Automotive Enhancements</span>
+                    <h2 class="text-4xl font-display font-bold text-white tracking-tight">Car Categories</h2>
+                    <p class="text-gray-400 text-sm mt-3 font-light">Upgrade your vehicle's aesthetics, exterior, and interior utility.</p>
+                </div>
+
+                <!-- 3D CAR VISUALIZER FOR CAR CATEGORIES -->
+                <div id="car-accessories-canvas" class="w-full h-[320px] mb-12 rounded-3xl overflow-hidden relative vision-glass border border-white/10 shadow-2xl">
+                    <div id="loading-text-2" class="loading-text">Loading 3D Model...</div>
+                    <div class="absolute top-5 left-6 z-10">
+                        <span class="text-[10px] uppercase tracking-[0.25em] text-gold font-bold block bg-black/40 px-3 py-1.5 rounded-full backdrop-blur-md">
+                            <i class="fa-solid fa-car-side mr-1"></i> Car Platform Showcase
+                        </span>
+                    </div>
+                </div>
+
+                <!-- SWIPEABLE HORIZONTAL CATEGORY TABS -->
+                <div class="flex overflow-x-auto hide-scrollbar gap-3 mb-8 pb-4 items-center justify-start lg:justify-center border-b border-white/10">
+                    <button onclick="selectCarCategory('led')" id="ccat-led" class="subcat-pill active px-5 py-2.5 rounded-full text-xs font-bold interactive">LED & LIGHTENING</button>
+                    <button onclick="selectCarCategory('exterior')" id="ccat-exterior" class="subcat-pill px-5 py-2.5 rounded-full text-xs font-bold interactive text-gray-300">EXTERIOR</button>
+                    <button onclick="selectCarCategory('interior')" id="ccat-interior" class="subcat-pill px-5 py-2.5 rounded-full text-xs font-bold interactive text-gray-300">INTERIOR</button>
+                    <button onclick="selectCarCategory('carcare')" id="ccat-carcare" class="subcat-pill px-5 py-2.5 rounded-full text-xs font-bold interactive text-gray-300">CAR CARE</button>
+                    <button onclick="selectCarCategory('utilities')" id="ccat-utilities" class="subcat-pill px-5 py-2.5 rounded-full text-xs font-bold interactive text-gray-300">UTILITIES</button>
+                </div>
+
+                <!-- DYNAMIC SUB-CATEGORY GRID -->
+                <div id="car-subcategory-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <!-- Cards injected via Javascript -->
+                </div>
+
+            </div>
+        </section>
+
+        <!-- ---------------- TAB 4: PRODUCTS (Shifts Product System Here) ---------------- -->
+        <section id="tab-products" class="tab-pane">
+            <div class="py-6">
+                <div class="flex flex-col md:flex-row justify-between md:items-end mb-12">
+                    <div>
+                        <span class="text-xs uppercase tracking-[0.25em] text-gold font-semibold block mb-1">Laboratory Inventory</span>
+                        <h2 class="text-4xl font-display font-bold text-white tracking-tight">Product Systems</h2>
+                    </div>
+                    <p class="text-gray-400 text-xs md:text-sm max-w-sm mt-4 md:mt-0 font-light">
+                        Select an item to inspect its specifications and submit a requisition directly to Muhammad Shafiq Mehar.
+                    </p>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8" id="product-grid">
+                    <!-- Product Cards Injected via JS -->
+                </div>
+            </div>
+        </section>
+
+        <!-- ---------------- TAB 5: PRODUCT REQUISITION / CHECKOUT ---------------- -->
+        <section id="tab-checkout" class="tab-pane">
+            <div class="max-w-5xl mx-auto py-6">
+                
+                <button onclick="switchTab('products')" class="btn-vision vision-glass px-5 py-2 rounded-full text-xs font-semibold mb-8 inline-flex items-center gap-2 text-gray-300 hover:text-white interactive">
+                    <i class="fa-solid fa-arrow-left"></i> Back to Inventory
+                </button>
+
+                <div class="grid grid-cols-1 lg:grid-cols-12 gap-12 items-start">
+                    
+                    <!-- Left Visual -->
+                    <div class="lg:col-span-6 flex flex-col gap-6">
+                        <div class="vision-glass rounded-3xl p-8 aspect-square flex items-center justify-center relative overflow-hidden shadow-2xl">
+                            <div class="absolute inset-0 bg-radial from-amber-500/10 to-transparent pointer-events-none"></div>
+                            <img id="co-img" src="" class="w-full h-full object-contain drop-shadow-[0_25px_35px_rgba(0,0,0,0.8)] z-10">
+                        </div>
+                        
+                        <!-- Custom Enclosure Consultation Box -->
+                        <div class="vision-glass p-6 rounded-2xl border-l-4 border-l-gold">
+                            <span class="text-[10px] uppercase tracking-[0.2em] text-gold font-bold block mb-1">Bespoke Fitment</span>
+                            <h4 class="font-display font-bold text-white text-base mb-1">Custom Requirement Details</h4>
+                            <p class="text-xs text-gray-300 font-light leading-relaxed">
+                                Vehicle dimensions vary widely. If you require a tailored enclosure or exact fitment for this item, attach a photograph of your target area below.
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Right Requisition Form -->
+                    <div class="lg:col-span-6 vision-glass p-8 sm:p-10 rounded-3xl shadow-2xl">
+                        
+                        <span id="co-cat" class="text-[10px] uppercase tracking-[0.25em] text-gold font-bold block mb-1">Category</span>
+                        <h1 id="co-title" class="text-3xl font-display font-extrabold text-white mb-3">Unit Title</h1>
+                        <div id="co-price" class="text-2xl font-light text-amber-300 mb-6 pb-6 border-b border-white/10">Rs. 0</div>
+                        
+                        <p id="co-desc" class="text-xs sm:text-sm text-gray-300 font-light leading-relaxed mb-6">Desc</p>
+
+                        <!-- Hardware Mini Specs -->
+                        <table class="w-full text-xs mb-8 bg-black/30 rounded-xl overflow-hidden border border-white/5">
+                            <tbody id="co-specs" class="divide-y divide-white/5 font-light text-gray-300"></tbody>
+                        </table>
+
+                        <!-- Checkout Form -->
+                        <form id="requisition-form" class="space-y-5">
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-[10px] uppercase tracking-widest text-gray-400 mb-1 font-semibold">Target Area</label>
+                                    <select id="co-env" class="w-full bg-[#0E0E14] border border-white/10 rounded-xl px-3 py-2.5 text-xs text-white outline-none focus:border-gold">
+                                        <option value="Sedan Car Boot / Interior">Sedan Boot/Interior</option>
+                                        <option value="SUV / Hatchback Trunk">SUV Boot/Interior</option>
+                                        <option value="Exterior / Underbody">Exterior / Underbody</option>
+                                        <option value="Residential Room">Home Setup</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-[10px] uppercase tracking-widest text-gray-400 mb-1 font-semibold">Quantity</label>
+                                    <input type="number" id="co-qty" min="1" value="1" class="w-full bg-[#0E0E14] border border-white/10 rounded-xl px-3 py-2.5 text-xs text-white outline-none focus:border-gold">
+                                </div>
+                            </div>
+
+                            <div>
+                                <label class="block text-[10px] uppercase tracking-widest text-gray-400 mb-1 font-semibold">Attach Photo (Magic Clipboard)</label>
+                                <input type="file" id="co-file" accept="image/*" class="w-full text-xs text-gray-400">
+                                <div id="image-preview-container"><img id="image-preview" src=""></div>
+                                <p class="text-[10px] text-amber-300/80 mt-2 font-light"><i class="fa-solid fa-wand-magic-sparkles mr-1 text-gold"></i> <b>Auto-Copy Active:</b> Image secured in memory. Simply tap <u>Paste</u> inside WhatsApp!</p>
+                            </div>
+
+                            <div>
+                                <label class="block text-[10px] uppercase tracking-widest text-gray-400 mb-1 font-semibold">Vehicle Model / Notes</label>
+                                <textarea id="co-notes" rows="2" class="w-full bg-[#0E0E14] border border-white/10 rounded-xl p-3 text-xs text-white outline-none focus:border-gold font-light" placeholder="e.g. Honda City 2021 interior specifics..."></textarea>
+                            </div>
+
+                            <button type="button" onclick="submitRequisition()" id="submit-btn" class="w-full btn-vision bg-gold hover:bg-gold-light text-black font-display font-bold text-xs uppercase tracking-widest py-4 rounded-xl shadow-lg interactive flex items-center justify-center gap-2">
+                                <i class="fa-brands fa-whatsapp text-base"></i> Transmit To Shafiq Mehar
+                            </button>
+                        </form>
+                    </div>
+
+                </div>
+            </div>
+        </section>
+
+        <!-- ---------------- TAB 6: LOCATION & CONTACT ---------------- -->
+        <section id="tab-location" class="tab-pane">
+            <div class="max-w-4xl mx-auto py-12 text-center">
+                <span class="text-xs uppercase tracking-[0.25em] text-gold font-semibold block mb-2">Visit Our Lab</span>
+                <h2 class="text-4xl font-display font-bold text-white tracking-tight mb-10">Contact & Location</h2>
+                
+                <!-- Main Map Card -->
+                <div class="vision-glass p-8 sm:p-12 rounded-3xl mb-8 flex flex-col items-center shadow-2xl relative overflow-hidden group">
+                    <div class="absolute inset-0 bg-gradient-to-b from-amber-500/5 to-transparent pointer-events-none"></div>
+                    
+                    <i class="fa-solid fa-map-location-dot text-5xl text-gold mb-6 group-hover:scale-110 transition-transform duration-500"></i>
+                    <h3 class="text-2xl font-display font-bold text-white mb-3">Pioneer Bass System Gujranwala</h3>
+                    
+                    <!-- Address -->
+                    <p class="text-gray-300 text-sm sm:text-base font-light max-w-xl mb-10 leading-relaxed">
+                        Main GT Road, Opposite Baba Bakers,<br> 
+                        Near Golden Pump, Civil Line, Service Road,<br>
+                        Gujranwala, Pakistan
+                    </p>
+                    
+                    <!-- Google Maps Button -->
+                    <a href="https://www.google.com/maps/search/?api=1&query=Main+GT+Road,+Opposite+Baba+Bakers,+Near+Golden+Pump,+Civil+Line,+Service+Road,+Gujranwala" target="_blank" class="btn-vision bg-gold hover:bg-gold-light text-black px-8 py-4 rounded-full font-display font-bold text-xs uppercase tracking-widest shadow-[0_0_30px_rgba(197,160,89,0.3)] interactive inline-flex items-center gap-3">
+                        <i class="fa-solid fa-location-arrow"></i> Open in Google Maps
+                    </a>
+                </div>
+
+                <!-- Email Contact Cards -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                    <div class="vision-glass p-8 rounded-3xl flex flex-col items-center hover:border-gold/40 transition-colors">
+                        <i class="fa-solid fa-envelope-open-text text-2xl text-gold mb-4"></i>
+                        <span class="text-[10px] uppercase tracking-widest text-gray-400 mb-1">Email Support 1</span>
+                        <a href="mailto:hamzas722@gmail.com" class="text-sm font-medium text-white hover:text-amber-300 transition-colors interactive">hamzas722@gmail.com</a>
+                    </div>
+                    <div class="vision-glass p-8 rounded-3xl flex flex-col items-center hover:border-gold/40 transition-colors">
+                        <i class="fa-solid fa-envelope-open-text text-2xl text-gold mb-4"></i>
+                        <span class="text-[10px] uppercase tracking-widest text-gray-400 mb-1">Email Support 2</span>
+                        <a href="mailto:ummimehar71@gmail.com" class="text-sm font-medium text-white hover:text-amber-300 transition-colors interactive">ummimehar71@gmail.com</a>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- ================= FLOATING GLASS FOOTER ================= -->
+    <footer class="relative z-10 border-t border-white/10 bg-[#060609] py-12 px-6 mt-auto">
+        <div class="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-8 text-center md:text-left">
+            <div>
+                <span class="font-display font-bold tracking-wider text-white text-base block mb-2">PIONEER BASS SYSTEM GUJRANWALA</span>
+                <p class="text-xs text-gray-400 font-light mb-1">Proprietor & Sound Engineer: <b class="text-white font-medium">Muhammad Shafiq Mehar</b> • 0320 7171575</p>
+                <div class="text-xs text-gray-400 font-light flex flex-col sm:flex-row items-center md:items-start gap-1 sm:gap-4 mt-2">
+                    <a href="mailto:hamzas722@gmail.com" class="hover:text-amber-300 transition-colors">hamzas722@gmail.com</a>
+                    <span class="hidden sm:inline text-white/20">•</span>
+                    <a href="mailto:ummimehar71@gmail.com" class="hover:text-amber-300 transition-colors">ummimehar71@gmail.com</a>
+                </div>
+            </div>
+            
+            <div class="text-[11px] text-gray-500 font-medium tracking-widest uppercase leading-relaxed md:text-right">
+                Main GT Road, Opp. Baba Bakers<br>
+                Near Golden Pump, Civil Line, Service Road<br>
+                Gujranwala • Pakistan
+            </div>
+        </div>
+    </footer>
+
+    <!-- JAVASCRIPT ENGINE -->
+    <script>
+        // --- 1. Product Database ---
+        const products = [
+            { id: 'tower9000', title: 'Pioneer S-9000 Pro Tower', category: 'Floorstanding Loudspeaker', desc: 'Standing 4.5 feet tall, engineered for extreme spatial cabin accuracy and subterranean bass drops.', price: 'Rs. 48,000', img: 'https://images.unsplash.com/photo-1545454675-3531b543be5d?auto=format&fit=crop&q=80&w=800', specs: { 'Drivers': 'Dual 12" Kevlar', 'RMS Power': '450W Reference RMS' } },
+            { id: 'beast1800', title: 'Mehar Audiophile 1800W', category: 'Monoblock Amplifier', desc: 'Features massive toroidal copper transformers and ultra-fast MOSFET switching.', price: 'Rs. 24,500', img: 'https://images.unsplash.com/photo-1598488035139-bdbb2231ce04?auto=format&fit=crop&q=80&w=800', specs: { 'Topology': 'Class-D Monoblock', 'Stability': '1 Ohm Continuous Stable' } },
+            { id: 'earthquake15', title: 'Earthquake Deep-Bass 15"', category: 'SPL Subwoofer Cylinder', desc: 'High-pressure cylindrical bass reflex tube. Delivers rapid transient low-frequency drops.', price: 'Rs. 19,000', img: 'https://images.unsplash.com/photo-1583394838336-acd977736f90?auto=format&fit=crop&q=80&w=800', specs: { 'Cone': '15" Non-Pressed Paper', 'Peak Power': '2000W PMPO' } },
+            { id: 'dspdeck', title: 'Pioneer DSP-Master Deck', category: '32-Bit Digital Head Unit', desc: 'Competition 32-Bit Sound Processor Deck. Offers 31 bands of independent equalization.', price: 'Rs. 14,000', img: 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?auto=format&fit=crop&q=80&w=800', specs: { 'Pre-Outs': '6 Channel Gold RCA (4V)', 'EQ': '31 Independent Bands' } },
+            { id: 'soundwheel', title: 'SoundWheel SPL Driver', category: 'Acoustic Component Wheel', desc: 'High-sensitivity component wheel engineered for door panel installation.', price: 'Rs. 11,500', img: 'https://images.unsplash.com/photo-1558403194-611308249627?auto=format&fit=crop&q=80&w=800', specs: { 'Diameter': '6.5 Inches Component', 'Sensitivity': '93 dB @ 1W/1m' } },
+            { id: 'wiringkit', title: 'Shafiq OFC Copper Wiring', category: 'High-Current Cabling Kit', desc: 'True zero-oxygen 4-gauge copper power cabling kit with an external 80A ANL fuse holder.', price: 'Rs. 6,500', img: 'https://images.unsplash.com/photo-1558403194-611308249627?auto=format&fit=crop&q=80&w=800', specs: { 'Gauge': 'True 4-AWG OFC Copper', 'Fuse': '80 Amperes ANL Block' } }
+        ];
+
+        // --- CAR SUBCATEGORIES DATABASE ---
+        const carCategoriesData = {
+            'led': {
+                icon: 'fa-lightbulb',
+                items: ['Headlights / Headlamps', 'Tail Lamps / Backlights', 'Fog Lamps', 'Day Time Running Lights', 'LEDs | SMDs | HIDs', 'Fog Lamp DRL Covers', 'Door Sill Plates']
+            },
+            'exterior': {
+                icon: 'fa-car',
+                items: ['Air Flows', 'Air Press & Sun Visors', 'Bumper Protectors', 'Chrome Trim & Accessories', 'Door Mouldings', 'Grille']
+            },
+            'interior': {
+                icon: 'fa-couch',
+                items: ['Car Floor Mats', 'Trunk Mats', 'Interior Decoration', 'Gear Knobs', 'Trims & Accessories']
+            },
+            'carcare': {
+                icon: 'fa-spray-can-sparkles',
+                items: ['Gadgets', 'Car Polish & Wax', 'Car Shampoo Wash & Wax', 'Interior Cleaning Polishes', 'Leather & Upholstery Cleaners', 'Wheel & Tyre', 'Windshield & Glass Wash']
+            },
+            'utilities': {
+                icon: 'fa-toolbox',
+                items: ['Air Compressor Inflators', 'Top Covers', 'Horns & Sirens']
+            }
+        };
+
+        let currentProduct = null;
+        let uploadedImageBlob = null;
+
+        // --- 2. SPA Tab State Machine ---
+        function switchTab(tabId, productId = null) {
+            const tabs = ['home', 'sound-categories', 'car-categories', 'products', 'checkout', 'location'];
+            
+            tabs.forEach(t => {
+                const pane = document.getElementById(`tab-${t}`);
+                if(pane) {
+                    if(t === tabId) {
+                        pane.classList.add('active');
+                        gsap.fromTo(pane, { autoAlpha: 0, y: 15 }, { autoAlpha: 1, y: 0, duration: 0.45, ease: 'power2.out' });
+                    } else {
+                        pane.classList.remove('active');
+                    }
+                }
+            });
+
+            ['home', 'sound-categories', 'car-categories', 'products', 'location'].forEach(p => {
+                const pill = document.getElementById(`pill-${p}`);
+                if(pill) pill.className = (p === tabId) ? 'vision-pill active px-3 sm:px-4 py-2 rounded-full text-[11px] sm:text-xs font-semibold interactive' : 'vision-pill px-3 sm:px-4 py-2 rounded-full text-[11px] sm:text-xs font-semibold interactive text-gray-300';
+            });
+
+            if(tabId === 'checkout' && productId) {
+                loadProductCheckout(productId);
+            }
+
+            history.pushState({ tab: tabId, pid: productId }, '', `#${tabId}`);
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        window.addEventListener('popstate', (e) => {
+            if(e.state && e.state.tab) switchTab(e.state.tab, e.state.pid);
+            else switchTab('home');
+        });
+
+        // --- 3. Dynamic Subcategory Renderer for Car Tabs ---
+        function selectCarCategory(key) {
+            const keys = ['led', 'exterior', 'interior', 'carcare', 'utilities'];
+            keys.forEach(k => {
+                const btn = document.getElementById(`ccat-${k}`);
+                if(btn) btn.className = (k === key) ? 'subcat-pill active px-5 py-2.5 rounded-full text-xs font-bold interactive' : 'subcat-pill px-5 py-2.5 rounded-full text-xs font-bold interactive text-gray-400 hover:text-white hover:border-white/20';
+            });
+
+            const grid = document.getElementById('car-subcategory-grid');
+            const data = carCategoriesData[key];
+            
+            gsap.to(grid, {autoAlpha: 0, duration: 0.2, onComplete: () => {
+                grid.innerHTML = data.items.map(item => `
+                    <div onclick="switchTab('products')" class="vision-glass p-5 rounded-2xl interactive group hover:border-gold/50 cursor-pointer transition-all flex items-center justify-between">
+                        <div class="flex items-center gap-4">
+                            <div class="w-10 h-10 rounded-full bg-black/40 border border-white/10 flex items-center justify-center text-gold group-hover:scale-110 transition-transform shadow-inner">
+                                <i class="fa-solid ${data.icon}"></i>
+                            </div>
+                            <h4 class="font-display font-medium text-white text-[13px] sm:text-sm tracking-wide">${item}</h4>
+                        </div>
+                        <div class="w-6 h-6 rounded-full bg-white/5 flex items-center justify-center group-hover:bg-gold transition-colors">
+                            <i class="fa-solid fa-chevron-right text-gray-500 text-[10px] group-hover:text-black transition-colors"></i>
+                        </div>
+                    </div>
+                `).join('');
+                
+                gsap.fromTo(grid.children, { autoAlpha: 0, y: 10 }, { autoAlpha: 1, y: 0, duration: 0.4, stagger: 0.05, ease: 'power2.out' });
+                gsap.to(grid, {autoAlpha: 1, duration: 0.2});
+            }});
+        }
+
+        // --- 4. Render Products Catalog ---
+        function renderProductsCatalog() {
+            const grid = document.getElementById('product-grid');
+            grid.innerHTML = '';
+            products.forEach((p, idx) => {
+                const card = document.createElement('div');
+                card.className = 'vision-glass p-6 rounded-3xl interactive group hover:border-gold/50 cursor-pointer transition-all flex flex-col justify-between';
+                card.onclick = () => switchTab('checkout', p.id);
+                card.innerHTML = `
+                    <div>
+                        <div class="aspect-square bg-black/40 rounded-2xl mb-5 overflow-hidden relative border border-white/5 flex items-center justify-center">
+                            <img src="${p.img}" class="w-full h-full object-cover group-hover:scale-108 transition-transform duration-700">
+                            <div class="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center backdrop-blur-xs">
+                                <span class="btn-vision bg-gold text-black font-bold text-[11px] px-5 py-2.5 rounded-full uppercase tracking-wider">Requisition Unit</span>
+                            </div>
+                        </div>
+                        <span class="text-[9px] uppercase tracking-[0.25em] text-amber-400 font-bold block mb-1">${p.category}</span>
+                        <h3 class="font-display font-bold text-lg text-white mb-2 leading-snug">${p.title}</h3>
+                    </div>
+                    <div class="pt-4 border-t border-white/10 flex items-center justify-between mt-4">
+                        <span class="text-base font-light text-amber-300">${p.price}</span>
+                        <span class="text-[10px] uppercase tracking-widest text-gray-400 group-hover:text-white transition-colors">Checkout →</span>
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        function loadProductCheckout(pid) {
+            const prod = products.find(p => p.id === pid);
+            if(!prod) return;
+            currentProduct = prod;
+
+            document.getElementById('co-title').textContent = prod.title;
+            document.getElementById('co-cat').textContent = prod.category;
+            document.getElementById('co-price').textContent = prod.price;
+            document.getElementById('co-desc').textContent = prod.desc;
+            document.getElementById('co-img').src = prod.img;
+
+            const specsEl = document.getElementById('co-specs');
+            specsEl.innerHTML = '';
+            for(const [k, v] of Object.entries(prod.specs)) {
+                specsEl.innerHTML += `<tr><td class="py-2.5 px-4 text-gray-400">${k}</td><td class="py-2.5 px-4 text-right text-white font-medium">${v}</td></tr>`;
+            }
+
+            document.getElementById('requisition-form').reset();
+            const previewCont = document.getElementById('image-preview-container');
+            if(previewCont) previewCont.style.display = 'none';
+            uploadedImageBlob = null;
+        }
+
+        // --- 5. File Upload & WhatsApp ---
+        const fileInput = document.getElementById('co-file');
+        if(fileInput) {
+            fileInput.addEventListener('change', (e) => {
+                const file = e.target.files[0];
+                if(file) {
+                    uploadedImageBlob = file;
+                    const reader = new FileReader();
+                    reader.onload = (evt) => {
+                        const previewImg = document.getElementById('image-preview');
+                        const previewCont = document.getElementById('image-preview-container');
+                        previewImg.src = evt.target.result;
+                        previewCont.style.display = 'block';
+                    };
+                    reader.readAsDataURL(file);
+                }
+            });
+        }
+
+        async function submitRequisition() {
+            if(!currentProduct) return;
+            const btn = document.getElementById('submit-btn');
+            btn.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin"></i> Securing Memory...`;
+            btn.classList.add('opacity-75', 'pointer-events-none');
+
+            let hasImg = false;
+            if(uploadedImageBlob) {
+                hasImg = true;
+                try {
+                    const bmp = await createImageBitmap(uploadedImageBlob);
+                    const cvs = document.createElement('canvas'); cvs.width = bmp.width; cvs.height = bmp.height;
+                    cvs.getContext('2d').drawImage(bmp, 0, 0);
+                    cvs.toBlob(async (b) => {
+                        try { await navigator.clipboard.write([new ClipboardItem({"image/png": b})]); } catch(err){}
+                    }, 'image/png');
+                } catch(err){}
+            }
+
+            const env = document.getElementById('co-env').value;
+            const qty = document.getElementById('co-qty').value;
+            const notes = document.getElementById('co-notes').value;
+
+            let txt = `*PIONEER BASS SYSTEM REQUISITION*\nProprietor: Muhammad Shafiq Mehar\n\n*Unit:* ${currentProduct.title}\n*Environment:* ${env}\n*Qty:* ${qty}\n*Valuation:* ${currentProduct.price}\n\n`;
+            if(notes) txt += `*Specs/Notes:*\n${notes}\n\n`;
+            if(hasImg) txt += `*(I HAVE COPIED MY SPACE PHOTOGRAPH. I WILL PASTE IT BELOW)*\n`;
+
+            setTimeout(() => {
+                if(typeof confetti === 'function') confetti({ particleCount: 80, spread: 70, origin: {y: 0.7}, colors: ['#C5A059', '#FCE881', '#ffffff'] });
+                btn.innerHTML = `<i class="fa-brands fa-whatsapp text-base"></i> Transmit To Shafiq Mehar`;
+                btn.classList.remove('opacity-75', 'pointer-events-none');
+                if(hasImg) alert("✨ Photograph copied to clipboard!\n\nInside WhatsApp, simply tap the typing box and press 'PASTE' to send your image.");
+                window.open(`https://wa.me/923207171575?text=${encodeURIComponent(txt)}`, '_blank');
+            }, 750);
+        }
+
+        // --- 6. Custom Trailing Glass Cursor ---
+        const cursor = document.getElementById('glass-cursor');
+        if(cursor && window.matchMedia('(hover: hover) and (pointer: fine)').matches) {
+            let cx = window.innerWidth / 2, cy = window.innerHeight / 2;
+            const moveCursor = gsap.quickTo(cursor, "left", {duration: 0.18, ease: "power3"}),
+                  moveCursorY = gsap.quickTo(cursor, "top", {duration: 0.18, ease: "power3"});
+            
+            window.addEventListener('mousemove', (e) => { moveCursor(e.clientX); moveCursorY(e.clientY); });
+
+            document.addEventListener('mouseover', (e) => {
+                if(e.target.closest('.interactive') || e.target.tagName === 'BUTTON' || e.target.tagName === 'A') cursor.classList.add('hovered');
+                else cursor.classList.remove('hovered');
+            });
+        }
+
+        // --- 7. Init ---
+        window.onload = () => {
+            renderProductsCatalog();
+            initThreeJSPioneerWheels();
+            
+            // Initialize 3D Car in BOTH tabs using GitHub Hosted Model
+            initThreeJSCarLoad('sound-car-canvas', 'tab-sound-categories', 'loading-text-1');
+            initThreeJSCarLoad('car-accessories-canvas', 'tab-car-categories', 'loading-text-2');
+            
+            selectCarCategory('led');
+            
+            gsap.from(".gs-anim", { y: 20, autoAlpha: 0, duration: 0.7, stagger: 0.12, ease: "power2.out" });
+
+            if(window.location.hash) switchTab(window.location.hash.replace('#',''));
+        };
+
+        // --- 8. PROGRAMMATIC THREE.JS "PIONEER SOUND WHEELS" ---
+        const initThreeJSPioneerWheels = () => {
+            const container = document.getElementById('hero-canvas');
+            if(!container) return;
+
+            const scene = new THREE.Scene();
+            const camera = new THREE.PerspectiveCamera(40, window.innerWidth / window.innerHeight, 0.1, 1000);
+            const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            container.appendChild(renderer.domElement);
+
+            scene.add(new THREE.AmbientLight(0xffffff, 0.65));
+            const goldLight = new THREE.PointLight(0xC5A059, 4, 20); goldLight.position.set(3, 4, 3); scene.add(goldLight);
+            const blueFill = new THREE.DirectionalLight(0x3b82f6, 0.8); blueFill.position.set(-5, 2, -4); scene.add(blueFill);
+
+            const buildTowerSpeaker = () => {
+                const grp = new THREE.Group();
+                const mdfMat = new THREE.MeshStandardMaterial({ color: 0x0D0D11, roughness: 0.35 });
+                const goldMat = new THREE.MeshStandardMaterial({ color: 0xC5A059, metalness: 0.85, roughness: 0.15 });
+                const coneMat = new THREE.MeshStandardMaterial({ color: 0x050507, roughness: 0.7 });
+                const glossCap = new THREE.MeshStandardMaterial({ color: 0x000000, roughness: 0.05, metalness: 0.4 });
+
+                const cabinet = new THREE.Mesh(new THREE.BoxGeometry(2.0, 4.6, 1.6), mdfMat);
+
+                const ring1 = new THREE.Mesh(new THREE.TorusGeometry(0.75, 0.07, 16, 64), goldMat); ring1.position.set(0, -1.1, 0.8);
+                const cone1 = new THREE.Mesh(new THREE.ConeGeometry(0.7, 0.35, 32), coneMat); cone1.rotation.x = Math.PI/2; cone1.position.set(0, -1.1, 0.68);
+                const cap1 = new THREE.Mesh(new THREE.SphereGeometry(0.25, 32, 32), glossCap); cap1.scale.z = 0.4; cap1.position.set(0, -1.1, 0.85);
+
+                const ring2 = ring1.clone(); ring2.position.y = 0.7;
+                const cone2 = cone1.clone(); cone2.position.y = 0.7;
+                const cap2 = cap1.clone(); cap2.position.y = 0.7;
+
+                const tRing = new THREE.Mesh(new THREE.TorusGeometry(0.3, 0.04, 16, 32), goldMat); tRing.position.set(0, 2.2, 0.8);
+                const tDome = new THREE.Mesh(new THREE.SphereGeometry(0.18, 32, 32), goldMat); tDome.scale.z = 0.5; tDome.position.set(0, 2.2, 0.84);
+
+                const knob = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.2, 0.15, 32), goldMat); knob.rotation.z = Math.PI/2; knob.position.set(1.05, 1.3, 0);
+
+                grp.add(cabinet, ring1, cone1, cap1, ring2, cone2, cap2, tRing, tDome, knob);
+                return grp;
+            };
+
+            const dualSystem = new THREE.Group();
+            const towerLeft = buildTowerSpeaker(); towerLeft.position.x = -1.2; towerLeft.rotation.y = 0.15;
+            const towerRight = buildTowerSpeaker(); towerRight.position.x = 1.2; towerRight.rotation.y = -0.15;
+            dualSystem.add(towerLeft, towerRight);
+
+            if(window.innerWidth > 1024) { dualSystem.position.set(3.4, -0.2, 0); dualSystem.scale.setScalar(0.9); }
+            else { dualSystem.position.set(0, -0.2, 0); dualSystem.scale.setScalar(0.65); }
+            scene.add(dualSystem);
+
+            camera.position.z = 8;
+            let time = 0;
+            const animate = () => {
+                requestAnimationFrame(animate);
+                if(document.getElementById('tab-home').classList.contains('active')) {
+                    time += 0.008;
+                    dualSystem.rotation.y = Math.sin(time * 0.4) * 0.18;
+                    dualSystem.position.y = (window.innerWidth > 1024 ? -0.2 : -0.2) + Math.sin(time * 3) * 0.04;
+                }
+                renderer.render(scene, camera);
+            };
+            animate();
+
+            window.addEventListener('resize', () => {
+                camera.aspect = window.innerWidth / window.innerHeight; camera.updateProjectionMatrix(); renderer.setSize(window.innerWidth, window.innerHeight);
+                if(window.innerWidth > 1024) { dualSystem.position.set(3.4, -0.2, 0); dualSystem.scale.setScalar(0.9); }
+                else { dualSystem.position.set(0, -0.2, 0); dualSystem.scale.setScalar(0.65); }
+            });
+        };
+
+        // --- 9. GITHUB .GLB LOADER FOR 3D CAR VISUALIZER ---
+        const initThreeJSCarLoad = (containerId, activeTabId, loadingTextId) => {
+            const container = document.getElementById(containerId);
+            if(!container) return;
+
+            const scene = new THREE.Scene();
+            
+            // Grid Helper for presentation
+            const gridHelper = new THREE.GridHelper(10, 20, 0x333333, 0x111111);
+            gridHelper.position.y = -1; // Adjust Grid Height
+            scene.add(gridHelper);
+
+            const camera = new THREE.PerspectiveCamera(40, container.clientWidth / container.clientHeight, 0.1, 100);
+            camera.position.set(5, 3, 6);
+            camera.lookAt(0, 0, 0);
+
+            const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
+            renderer.setSize(container.clientWidth, container.clientHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            container.appendChild(renderer.domElement);
+
+            // Studio Lighting Setup for Model
+            scene.add(new THREE.AmbientLight(0xffffff, 1.5));
+            const dirLight = new THREE.DirectionalLight(0xffffff, 2.5);
+            dirLight.position.set(5, 10, 7);
+            scene.add(dirLight);
+            
+            const goldLight = new THREE.PointLight(0xC5A059, 2, 20); 
+            goldLight.position.set(-3, 2, 3); 
+            scene.add(goldLight);
+
+            let loadedCar = null;
+            const loader = new THREE.GLTFLoader();
+            
+            // =======================================================
+            // THE CODE LOOKS FOR THIS EXACT FILE NAME IN GITHUB:
+            // =======================================================
+            loader.load('car-model.glb', function(gltf) {
+                loadedCar = gltf.scene;
+                
+                // Hide Loading Text
+                const loadingText = document.getElementById(loadingTextId);
+                if(loadingText) loadingText.style.display = 'none';
+                
+                // Automatically scale the model to fit perfectly in the window
+                const box = new THREE.Box3().setFromObject(loadedCar);
+                const center = box.getCenter(new THREE.Vector3());
+                const size = box.getSize(new THREE.Vector3());
+                
+                // Shrink or Enlarge to a standardized size (e.g. max dimension of 3.5 units)
+                const maxDim = Math.max(size.x, size.y, size.z);
+                const targetSize = 3.5; 
+                const scale = targetSize / maxDim;
+                loadedCar.scale.set(scale, scale, scale);
+                
+                // Center the car exactly on the grid
+                loadedCar.position.sub(center.multiplyScalar(scale));
+                loadedCar.position.y += Math.abs((box.min.y * scale)); // Rest on the grid
+                loadedCar.position.y -= 1; // Align to our gridHelper
+
+                scene.add(loadedCar);
+            }, undefined, function(error) {
+                console.error('Error loading 3D model:', error);
+                const loadingText = document.getElementById(loadingTextId);
+                if(loadingText) loadingText.innerText = 'Failed to load 3D model.';
+            });
+
+            let time = 0;
+            const animate = () => {
+                requestAnimationFrame(animate);
+                
+                // Only animate when the assigned tab is open to save device battery/GPU
+                if(document.getElementById(activeTabId).classList.contains('active')) {
+                    if(loadedCar) {
+                        time += 0.005;
+                        loadedCar.rotation.y = time; // Spin the loaded car slowly
+                        loadedCar.position.y = -1 + Math.sin(time * 5) * 0.03; // Gentle floating effect
+                    }
+                }
+                
+                renderer.render(scene, camera);
+            };
+            animate();
+
+            // Handle Resize specifically for the car canvas box
+            const resizeObserver = new ResizeObserver(() => {
+                if(container.clientWidth > 0) {
+                    camera.aspect = container.clientWidth / container.clientHeight;
+                    camera.updateProjectionMatrix();
+                    renderer.setSize(container.clientWidth, container.clientHeight);
+                }
+            });
+            resizeObserver.observe(container);
+        };
+    </script>
+</body>
+</html>
